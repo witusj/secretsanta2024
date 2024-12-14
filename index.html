@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Secret Santa App</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+  <div class="bg-white p-8 rounded shadow-md w-full max-w-md">
+    <h1 class="text-2xl font-bold mb-6 text-center">Secret Santa</h1>
+
+    <!-- Login Form -->
+    <form id="login-form" class="flex flex-col space-y-4">
+      <input type="text" id="name" placeholder="Name" class="p-2 border rounded" required>
+      <input type="password" id="password" placeholder="Password" class="p-2 border rounded" required>
+      <button type="submit" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Login</button>
+    </form>
+
+    <!-- Assignment Display -->
+    <div id="assignment-section" class="hidden mt-6">
+      <h2 class="text-xl font-semibold mb-4 text-center">Your Secret Santa Assignment</h2>
+      <p id="assignment-result" class="p-4 bg-gray-100 rounded text-center"></p>
+      <button id="logout-btn" class="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Logout</button>
+    </div>
+  </div>
+
+  <!-- JavaScript -->
+  <script>
+    /**
+     * Function to decode Base64 encoded strings.
+     * @param {string} encodedStr - The Base64 encoded string.
+     * @returns {string|null} - The decoded string or null if decoding fails.
+     */
+    function decodeBase64(encodedStr) {
+      try {
+        return atob(encodedStr);
+      } catch (e) {
+        console.error('Error decoding Base64:', e);
+        return null;
+      }
+    }
+
+    /**
+     * Handle the login form submission.
+     * Validates user credentials and displays the assigned Secret Santa.
+     */
+    const loginForm = document.getElementById('login-form');
+    const assignmentSection = document.getElementById('assignment-section');
+    const assignmentResult = document.getElementById('assignment-result');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault(); // Prevent form from submitting normally
+
+      const name = document.getElementById('name').value.trim();
+      const password = document.getElementById('password').value.trim();
+
+      // Basic validation
+      if (!name || !password) {
+        alert('Please enter both name and password.');
+        return;
+      }
+
+      try {
+        // Fetch assignments.json
+        const response = await fetch('assignments.json');
+        if (!response.ok) {
+          throw new Error('Failed to load assignments.');
+        }
+        const assignmentsData = await response.json();
+
+        // Find participant by name (case-insensitive)
+        const participant = Object.keys(assignmentsData).find(participantName => participantName.toLowerCase() === name.toLowerCase());
+
+        if (!participant) {
+          alert('Participant not found.');
+          return;
+        }
+
+        const participantData = assignmentsData[participant];
+
+        // Check password
+        if (participantData.password !== password) {
+          alert('Incorrect password.');
+          return;
+        }
+
+        // Decode assignedTo
+        const assignedToEncoded = participantData.assignedTo;
+        const assignedTo = decodeBase64(assignedToEncoded);
+        if (!assignedTo) {
+          alert('Failed to decode assignment.');
+          return;
+        }
+
+        // Display assignment
+        assignmentResult.textContent = `You are assigned to: ${assignedTo}`;
+        loginForm.classList.add('hidden');
+        assignmentSection.classList.remove('hidden');
+      } catch (error) {
+        console.error('Error during login:', error);
+        alert('An error occurred during login.');
+      }
+    });
+
+    /**
+     * Handle the logout button click.
+     * Resets the UI to show the login form again.
+     */
+    logoutBtn.addEventListener('click', () => {
+      assignmentSection.classList.add('hidden');
+      loginForm.classList.remove('hidden');
+      loginForm.reset();
+    });
+  </script>
+</body>
+</html>
